@@ -5,7 +5,8 @@ function episodeSummary(text, maxLength) {
 
 function episodeLabel(ep) {
   const seasonPart = ep.season ? `S${ep.season} · ` : "";
-  return `${seasonPart}EP${ep.episodeNumber} · ${ep.title}`;
+  const episodePart = ep.episodeNumber != null ? `EP${ep.episodeNumber} · ` : "";
+  return `${seasonPart}${episodePart}${ep.title}`;
 }
 
 function renderEpisodeList(episodes) {
