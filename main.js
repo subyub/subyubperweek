@@ -62,6 +62,7 @@ function renderEpisodeDetail(detailEl, ep) {
   const comments = document.createElement("div");
   comments.className = "ep-comments";
   detailEl.appendChild(comments);
+  mountGiscus(comments, `${location.origin}${episodeShareUrl(ep)}`);
 }
 
 function episodeShareUrl(ep) {
@@ -72,10 +73,10 @@ function toggleEpisodeDetail(card, ep, toggleBtn) {
   const detail = card.querySelector(".ep-detail");
   const isHidden = detail.hasAttribute("hidden");
   if (isHidden) {
+    history.pushState(null, "", episodeShareUrl(ep));
     renderEpisodeDetail(detail, ep);
     detail.removeAttribute("hidden");
     toggleBtn.textContent = "收合";
-    history.pushState(null, "", episodeShareUrl(ep));
   } else {
     detail.setAttribute("hidden", "");
     toggleBtn.textContent = "展開";
@@ -103,4 +104,30 @@ async function loadEpisodes() {
 
 if (document.getElementById("episode-list")) {
   loadEpisodes();
+}
+
+const GISCUS_CONFIG = {
+  repo: "subyub/subyubperweek",
+  repoId: "PASTE_FROM_GISCUS_APP",
+  category: "Comments",
+  categoryId: "PASTE_FROM_GISCUS_APP",
+};
+
+function mountGiscus(container, shareUrl) {
+  container.innerHTML = "";
+  const script = document.createElement("script");
+  script.src = "https://giscus.app/client.js";
+  script.async = true;
+  script.crossOrigin = "anonymous";
+  script.setAttribute("data-repo", GISCUS_CONFIG.repo);
+  script.setAttribute("data-repo-id", GISCUS_CONFIG.repoId);
+  script.setAttribute("data-category", GISCUS_CONFIG.category);
+  script.setAttribute("data-category-id", GISCUS_CONFIG.categoryId);
+  script.setAttribute("data-mapping", "url");
+  script.setAttribute("data-strict", "0");
+  script.setAttribute("data-reactions-enabled", "1");
+  script.setAttribute("data-input-position", "bottom");
+  script.setAttribute("data-theme", "preferred_color_scheme");
+  script.setAttribute("data-lang", "zh-TW");
+  container.appendChild(script);
 }
