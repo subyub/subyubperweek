@@ -69,12 +69,18 @@ function episodeShareUrl(ep) {
   return `${location.pathname}?ep=${ep.id}`;
 }
 
+function resetEpisodeDetail(detailEl) {
+  detailEl.innerHTML = "";
+  detailEl.dataset.rendered = "false";
+}
+
 function collapseAllExcept(exceptCard) {
   document.querySelectorAll(".episode-card").forEach((otherCard) => {
     if (otherCard === exceptCard) return;
     const otherDetail = otherCard.querySelector(".ep-detail");
     if (!otherDetail.hasAttribute("hidden")) {
       otherDetail.setAttribute("hidden", "");
+      resetEpisodeDetail(otherDetail);
       otherCard.querySelector(".ep-toggle").textContent = "展開";
     }
   });
@@ -91,6 +97,7 @@ function toggleEpisodeDetail(card, ep, toggleBtn) {
     toggleBtn.textContent = "收合";
   } else {
     detail.setAttribute("hidden", "");
+    resetEpisodeDetail(detail);
     toggleBtn.textContent = "展開";
   }
 }
