@@ -1,7 +1,7 @@
 import unittest
 import os
 
-from sync_rss import clean_episode_title, strip_html, parse_feed
+from sync_rss import clean_episode_title, strip_html, parse_feed, merge_episodes
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "sample_feed.xml")
 
@@ -84,6 +84,45 @@ class TestParseFeed(unittest.TestCase):
                 "8b0381bc-69be-4119-863e-4ccf4307b7ff",
             ],
         )
+
+
+class TestMergeEpisodes(unittest.TestCase):
+    def test_new_episode_gets_empty_manual_fields(self):
+        fetched = [{"id": "ep1", "pubDate": "2026-07-01", "title": "New"}]
+        merged = merge_episodes(existing=[], fetched=fetched)
+        self.assertEqual(merged[0]["appleUrl"], "")
+        self.assertEqual(merged[0]["spotifyUrl"], "")
+
+    def test_existing_manual_fields_are_preserved(self):
+        existing = [
+            {
+                "id": "ep1",
+                "pubDate": "2026-07-01",
+                "title": "Old title",
+                "appleUrl": "https://podcasts.apple.com/ep1",
+                "spotifyUrl": "https://open.spotify.com/ep1",
+            }
+        ]
+        fetched = [{"id": "ep1", "pubDate": "2026-07-01", "title": "Updated title"}]
+        merged = merge_episodes(existing=existing, fetched=fetched)
+        self.assertEqual(merged[0]["title"], "Updated title")
+        self.assertEqual(merged[0]["appleUrl"], "https://podcasts.apple.com/ep1")
+        self.assertEqual(merged[0]["spotifyUrl"], "https://open.spotify.com/ep1")
+
+    def test_sorted_newest_first(self):
+        fetched = [
+            {"id": "old", "pubDate": "2020-01-01", "title": "Old"},
+            {"id": "new", "pubDate": "2026-07-01", "title": "New"},
+        ]
+        merged = merge_episodes(existing=[], fetched=fetched)
+        self.assertEqual([ep["id"] for ep in merged], ["new", "old"])
+
+    def test_removed_from_feed_episode_is_dropped(self):
+        existing = [
+            {"id": "gone", "pubDate": "2020-01-01", "title": "Gone", "appleUrl": "", "spotifyUrl": ""}
+        ]
+        merged = merge_episodes(existing=existing, fetched=[])
+        self.assertEqual(merged, [])
 
 
 if __name__ == "__main__":

@@ -58,3 +58,16 @@ def parse_feed(xml_text):
             }
         )
     return episodes
+
+
+def merge_episodes(existing, fetched):
+    existing_by_id = {ep["id"]: ep for ep in existing}
+    merged = []
+    for fetched_ep in fetched:
+        prior = existing_by_id.get(fetched_ep["id"])
+        merged_ep = dict(fetched_ep)
+        merged_ep["appleUrl"] = prior["appleUrl"] if prior else ""
+        merged_ep["spotifyUrl"] = prior["spotifyUrl"] if prior else ""
+        merged.append(merged_ep)
+    merged.sort(key=lambda ep: ep["pubDate"] or "", reverse=True)
+    return merged
