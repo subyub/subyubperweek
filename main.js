@@ -132,9 +132,9 @@ if (document.getElementById("episode-list")) {
 
 const GISCUS_CONFIG = {
   repo: "subyub/subyubperweek",
-  repoId: "PASTE_FROM_GISCUS_APP",
-  category: "Comments",
-  categoryId: "PASTE_FROM_GISCUS_APP",
+  repoId: "R_kgDOTW8X_A",
+  category: "Announcements",
+  categoryId: "DIC_kwDOTW8X_M4DBGC1",
 };
 
 function mountGiscus(container, shareUrl) {
