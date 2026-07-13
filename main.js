@@ -30,22 +30,74 @@ function renderEpisodeList(episodes) {
   });
 }
 
+function platformLinkHtml(label, url) {
+  return url ? `<a href="${url}" target="_blank" rel="noopener">${label}</a>` : "";
+}
+
+function renderEpisodeDetail(detailEl, ep) {
+  if (detailEl.dataset.rendered === "true") return;
+  detailEl.dataset.rendered = "true";
+
+  const audio = document.createElement("audio");
+  audio.className = "ep-audio";
+  audio.controls = true;
+  audio.src = ep.audioUrl;
+  detailEl.appendChild(audio);
+
+  const desc = document.createElement("p");
+  desc.className = "ep-desc-full";
+  desc.style.whiteSpace = "pre-line";
+  desc.textContent = ep.description;
+  detailEl.appendChild(desc);
+
+  const links = document.createElement("div");
+  links.className = "ep-links";
+  links.innerHTML = [
+    platformLinkHtml("SoundOn 收聽", ep.soundonUrl),
+    platformLinkHtml("Apple Podcasts", ep.appleUrl),
+    platformLinkHtml("Spotify", ep.spotifyUrl),
+  ].join("");
+  detailEl.appendChild(links);
+
+  const comments = document.createElement("div");
+  comments.className = "ep-comments";
+  detailEl.appendChild(comments);
+}
+
+function episodeShareUrl(ep) {
+  return `${location.pathname}?ep=${ep.id}`;
+}
+
 function toggleEpisodeDetail(card, ep, toggleBtn) {
   const detail = card.querySelector(".ep-detail");
   const isHidden = detail.hasAttribute("hidden");
   if (isHidden) {
+    renderEpisodeDetail(detail, ep);
     detail.removeAttribute("hidden");
     toggleBtn.textContent = "收合";
+    history.pushState(null, "", episodeShareUrl(ep));
   } else {
     detail.setAttribute("hidden", "");
     toggleBtn.textContent = "展開";
   }
 }
 
+function applyDeepLinkFromUrl(episodes) {
+  const epId = new URLSearchParams(location.search).get("ep");
+  if (!epId) return;
+  const card = document.querySelector(`.episode-card[data-episode-id="${epId}"]`);
+  if (!card) return;
+  const ep = episodes.find((e) => e.id === epId);
+  const toggleBtn = card.querySelector(".ep-toggle");
+  toggleEpisodeDetail(card, ep, toggleBtn);
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 async function loadEpisodes() {
   const res = await fetch("episodes.json");
   const data = await res.json();
   renderEpisodeList(data.episodes);
+  applyDeepLinkFromUrl(data.episodes);
   return data.episodes;
 }
 
