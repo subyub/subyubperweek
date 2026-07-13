@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>拾壹每週聽 Subyub Per Week Listen to</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <h1>拾壹每週聽 Subyub Per Week Listen to</h1>
+    <nav>
+      <a href="index.html">集數</a>
+      <a href="about.html">關於</a>
+    </nav>
+  </header>
+  <main id="episode-list" class="episode-list"></main>
+  <template id="episode-template">
+    <article class="episode-card">
+      <h2 class="ep-title"></h2>
+      <p class="ep-meta"></p>
+      <p class="ep-desc"></p>
+      <button class="ep-toggle" type="button">展開</button>
+      <div class="ep-detail" hidden></div>
+    </article>
+  </template>
+  <script src="main.js"></script>
+</body>
+</html>
