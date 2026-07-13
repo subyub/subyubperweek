@@ -1,7 +1,10 @@
 import unittest
 import os
+import json
+import tempfile
+from pathlib import Path
 
-from sync_rss import clean_episode_title, strip_html, parse_feed, merge_episodes
+from sync_rss import clean_episode_title, strip_html, parse_feed, merge_episodes, sync
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "sample_feed.xml")
 
@@ -123,6 +126,68 @@ class TestMergeEpisodes(unittest.TestCase):
         ]
         merged = merge_episodes(existing=existing, fetched=[])
         self.assertEqual(merged, [])
+
+
+class TestSync(unittest.TestCase):
+    def _fake_fetcher(self, xml_bytes):
+        return lambda url: xml_bytes
+
+    def test_writes_episodes_json_from_fixture(self):
+        with open(FIXTURE_PATH, "rb") as f:
+            xml_bytes = f.read()
+        with tempfile.TemporaryDirectory() as tmp:
+            episodes_path = Path(tmp) / "episodes.json"
+            changed = sync(
+                rss_url="unused://fixture",
+                episodes_path=episodes_path,
+                fetcher=self._fake_fetcher(xml_bytes),
+            )
+            self.assertTrue(changed)
+            data = json.loads(episodes_path.read_text(encoding="utf-8"))
+            self.assertEqual(len(data["episodes"]), 3)
+            self.assertEqual(data["episodes"][0]["id"], "480968d5-4b0a-4424-90ac-e72082944270")
+
+    def test_second_run_with_same_data_reports_unchanged(self):
+        with open(FIXTURE_PATH, "rb") as f:
+            xml_bytes = f.read()
+        with tempfile.TemporaryDirectory() as tmp:
+            episodes_path = Path(tmp) / "episodes.json"
+            sync(
+                rss_url="unused://fixture",
+                episodes_path=episodes_path,
+                fetcher=self._fake_fetcher(xml_bytes),
+            )
+            changed_again = sync(
+                rss_url="unused://fixture",
+                episodes_path=episodes_path,
+                fetcher=self._fake_fetcher(xml_bytes),
+            )
+            self.assertFalse(changed_again)
+
+    def test_preserves_manual_links_across_runs(self):
+        with open(FIXTURE_PATH, "rb") as f:
+            xml_bytes = f.read()
+        with tempfile.TemporaryDirectory() as tmp:
+            episodes_path = Path(tmp) / "episodes.json"
+            sync(
+                rss_url="unused://fixture",
+                episodes_path=episodes_path,
+                fetcher=self._fake_fetcher(xml_bytes),
+            )
+            data = json.loads(episodes_path.read_text(encoding="utf-8"))
+            data["episodes"][0]["appleUrl"] = "https://podcasts.apple.com/manually-added"
+            episodes_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+            sync(
+                rss_url="unused://fixture",
+                episodes_path=episodes_path,
+                fetcher=self._fake_fetcher(xml_bytes),
+            )
+            data_after = json.loads(episodes_path.read_text(encoding="utf-8"))
+            self.assertEqual(
+                data_after["episodes"][0]["appleUrl"],
+                "https://podcasts.apple.com/manually-added",
+            )
 
 
 if __name__ == "__main__":

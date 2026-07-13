@@ -71,3 +71,50 @@ def merge_episodes(existing, fetched):
         merged.append(merged_ep)
     merged.sort(key=lambda ep: ep["pubDate"] or "", reverse=True)
     return merged
+
+
+import json
+import sys
+import urllib.request
+from pathlib import Path
+
+RSS_URL = "https://feeds.soundon.fm/podcasts/6caafcca-f43a-4459-8fc0-cc065723f46a.xml"
+DEFAULT_EPISODES_PATH = Path(__file__).resolve().parent.parent / "episodes.json"
+PODCAST_META = {
+    "title": "拾壹每週聽 Subyub Per Week Listen to",
+    "coverImage": "https://files.soundon.fm/1654956277505-a3a2af86-2394-49b0-9803-af0cff173092.jpeg",
+    "soundonRss": RSS_URL,
+}
+
+
+def fetch_rss(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "subyubperweek-sync/1.0"})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return resp.read()
+
+
+def load_existing(path):
+    if not path.exists():
+        return {"podcast": {}, "episodes": []}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def sync(rss_url=RSS_URL, episodes_path=DEFAULT_EPISODES_PATH, fetcher=fetch_rss):
+    episodes_path = Path(episodes_path)
+    xml_bytes = fetcher(rss_url)
+    fetched = parse_feed(xml_bytes)
+    data = load_existing(episodes_path)
+    data["episodes"] = merge_episodes(data.get("episodes", []), fetched)
+    data["podcast"] = PODCAST_META
+
+    new_content = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    old_content = episodes_path.read_text(encoding="utf-8") if episodes_path.exists() else None
+    changed = new_content != old_content
+    episodes_path.write_text(new_content, encoding="utf-8")
+    return changed
+
+
+if __name__ == "__main__":
+    did_change = sync()
+    print("changed" if did_change else "unchanged")
+    sys.exit(0)
