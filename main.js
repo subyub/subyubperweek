@@ -65,8 +65,12 @@ function renderEpisodeDetail(detailEl, ep) {
   mountGiscus(comments, `${location.origin}${episodeShareUrl(ep)}`);
 }
 
+function canonicalPathname() {
+  return location.pathname.endsWith("/") ? `${location.pathname}index.html` : location.pathname;
+}
+
 function episodeShareUrl(ep) {
-  return `${location.pathname}?ep=${ep.id}`;
+  return `${canonicalPathname()}?ep=${ep.id}`;
 }
 
 function resetEpisodeDetail(detailEl) {
@@ -108,6 +112,7 @@ function applyDeepLinkFromUrl(episodes) {
   const card = document.querySelector(`.episode-card[data-episode-id="${epId}"]`);
   if (!card) return;
   const ep = episodes.find((e) => e.id === epId);
+  if (!ep) return;
   const toggleBtn = card.querySelector(".ep-toggle");
   toggleEpisodeDetail(card, ep, toggleBtn);
   card.scrollIntoView({ behavior: "smooth", block: "start" });

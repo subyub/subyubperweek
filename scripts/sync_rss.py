@@ -3,7 +3,7 @@
 import html
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from email.utils import parsedate_to_datetime
 
 TITLE_PREFIX_RE = re.compile(r"^.*】Ep\.?\d+\s*-?\s*")
 
@@ -27,7 +27,7 @@ ITUNES_NS = {"itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd"}
 
 
 def parse_pub_date(raw_date):
-    dt = datetime.strptime(raw_date.strip(), "%a, %d %b %Y %H:%M:%S %Z")
+    dt = parsedate_to_datetime(raw_date.strip())
     return dt.strftime("%Y-%m-%d")
 
 
@@ -36,27 +36,37 @@ def parse_feed(xml_text):
     channel = root.find("channel")
     episodes = []
     for item in channel.findall("item"):
-        guid_el = item.find("guid")
-        title_el = item.find("title")
-        pub_date_el = item.find("pubDate")
-        desc_el = item.find("description")
-        link_el = item.find("link")
-        enclosure_el = item.find("enclosure")
-        season_el = item.find("itunes:season", ITUNES_NS)
-        episode_el = item.find("itunes:episode", ITUNES_NS)
+        try:
+            guid_el = item.find("guid")
+            title_el = item.find("title")
+            pub_date_el = item.find("pubDate")
+            desc_el = item.find("description")
+            link_el = item.find("link")
+            enclosure_el = item.find("enclosure")
+            season_el = item.find("itunes:season", ITUNES_NS)
+            episode_el = item.find("itunes:episode", ITUNES_NS)
 
-        episodes.append(
-            {
-                "id": guid_el.text.strip() if guid_el is not None and guid_el.text else None,
-                "season": int(season_el.text) if season_el is not None and season_el.text else None,
-                "episodeNumber": int(episode_el.text) if episode_el is not None and episode_el.text else None,
-                "title": clean_episode_title(title_el.text if title_el is not None else ""),
-                "pubDate": parse_pub_date(pub_date_el.text) if pub_date_el is not None and pub_date_el.text else None,
-                "description": strip_html(desc_el.text if desc_el is not None else ""),
-                "audioUrl": enclosure_el.get("url") if enclosure_el is not None else "",
-                "soundonUrl": link_el.text.strip() if link_el is not None and link_el.text else "",
-            }
-        )
+            episodes.append(
+                {
+                    "id": guid_el.text.strip() if guid_el is not None and guid_el.text else None,
+                    "season": int(season_el.text) if season_el is not None and season_el.text else None,
+                    "episodeNumber": int(episode_el.text) if episode_el is not None and episode_el.text else None,
+                    "title": clean_episode_title(title_el.text if title_el is not None else ""),
+                    "pubDate": parse_pub_date(pub_date_el.text) if pub_date_el is not None and pub_date_el.text else None,
+                    "description": strip_html(desc_el.text if desc_el is not None else ""),
+                    "audioUrl": enclosure_el.get("url") if enclosure_el is not None else "",
+                    "soundonUrl": link_el.text.strip() if link_el is not None and link_el.text else "",
+                }
+            )
+        except Exception as exc:
+            guid_el = item.find("guid")
+            title_el = item.find("title")
+            identifier = (
+                (guid_el.text.strip() if guid_el is not None and guid_el.text else None)
+                or (title_el.text.strip() if title_el is not None and title_el.text else None)
+                or "<unknown item>"
+            )
+            print(f"warning: skipping malformed RSS item ({identifier}): {exc}", file=sys.stderr)
     return episodes
 
 

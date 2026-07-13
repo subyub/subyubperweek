@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from sync_rss import clean_episode_title, strip_html, parse_feed, merge_episodes, sync
+from sync_rss import clean_episode_title, strip_html, parse_feed, parse_pub_date, merge_episodes, sync
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "sample_feed.xml")
 
@@ -50,6 +50,14 @@ class TestStripHtml(unittest.TestCase):
         self.assertEqual(strip_html(""), "")
 
 
+class TestParsePubDate(unittest.TestCase):
+    def test_parses_named_timezone(self):
+        self.assertEqual(parse_pub_date("Sat, 20 Jun 2026 13:29:28 GMT"), "2026-06-20")
+
+    def test_parses_numeric_offset_timezone(self):
+        self.assertEqual(parse_pub_date("Sat, 20 Jun 2026 13:29:28 +0000"), "2026-06-20")
+
+
 class TestParseFeed(unittest.TestCase):
     def setUp(self):
         with open(FIXTURE_PATH, encoding="utf-8") as f:
@@ -87,6 +95,44 @@ class TestParseFeed(unittest.TestCase):
                 "8b0381bc-69be-4119-863e-4ccf4307b7ff",
             ],
         )
+
+    def test_item_with_malformed_pub_date_is_skipped_not_fatal(self):
+        xml_text = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+<channel>
+<title>Test Feed</title>
+<item>
+<title>Good Episode One</title>
+<guid isPermaLink="false">good-1</guid>
+<pubDate>Sat, 20 Jun 2026 13:29:28 GMT</pubDate>
+<link>https://example.com/1</link>
+<enclosure url="https://example.com/1.mp3" length="1" type="audio/mpeg"/>
+<itunes:season>1</itunes:season>
+<itunes:episode>1</itunes:episode>
+</item>
+<item>
+<title>Malformed Date Episode</title>
+<guid isPermaLink="false">bad-date</guid>
+<pubDate>not a date</pubDate>
+<link>https://example.com/bad</link>
+<enclosure url="https://example.com/bad.mp3" length="1" type="audio/mpeg"/>
+<itunes:season>1</itunes:season>
+<itunes:episode>2</itunes:episode>
+</item>
+<item>
+<title>Good Episode Two</title>
+<guid isPermaLink="false">good-2</guid>
+<pubDate>Sun, 09 Jul 2023 09:14:45 GMT</pubDate>
+<link>https://example.com/2</link>
+<enclosure url="https://example.com/2.mp3" length="1" type="audio/mpeg"/>
+<itunes:season>1</itunes:season>
+<itunes:episode>3</itunes:episode>
+</item>
+</channel>
+</rss>"""
+        episodes = parse_feed(xml_text)
+        self.assertEqual(len(episodes), 2)
+        self.assertEqual([ep["id"] for ep in episodes], ["good-1", "good-2"])
 
 
 class TestMergeEpisodes(unittest.TestCase):
