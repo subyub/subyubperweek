@@ -69,10 +69,22 @@ function episodeShareUrl(ep) {
   return `${location.pathname}?ep=${ep.id}`;
 }
 
+function collapseAllExcept(exceptCard) {
+  document.querySelectorAll(".episode-card").forEach((otherCard) => {
+    if (otherCard === exceptCard) return;
+    const otherDetail = otherCard.querySelector(".ep-detail");
+    if (!otherDetail.hasAttribute("hidden")) {
+      otherDetail.setAttribute("hidden", "");
+      otherCard.querySelector(".ep-toggle").textContent = "展開";
+    }
+  });
+}
+
 function toggleEpisodeDetail(card, ep, toggleBtn) {
   const detail = card.querySelector(".ep-detail");
   const isHidden = detail.hasAttribute("hidden");
   if (isHidden) {
+    collapseAllExcept(card);
     history.pushState(null, "", episodeShareUrl(ep));
     renderEpisodeDetail(detail, ep);
     detail.removeAttribute("hidden");
