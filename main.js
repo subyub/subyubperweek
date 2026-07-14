@@ -44,6 +44,15 @@ function renderEpisodeDetail(detailEl, ep) {
   audio.src = ep.audioUrl;
   detailEl.appendChild(audio);
 
+  const siteCommentsHeading = document.createElement("h4");
+  siteCommentsHeading.textContent = "留言";
+  detailEl.appendChild(siteCommentsHeading);
+
+  const siteComments = document.createElement("div");
+  siteComments.className = "ep-site-comments";
+  detailEl.appendChild(siteComments);
+  mountSiteComments(siteComments, ep.id);
+
   const desc = document.createElement("p");
   desc.className = "ep-desc-full";
   desc.style.whiteSpace = "pre-line";
@@ -58,24 +67,6 @@ function renderEpisodeDetail(detailEl, ep) {
     platformLinkHtml("Spotify", ep.spotifyUrl),
   ].join("");
   detailEl.appendChild(links);
-
-  const giscusHeading = document.createElement("h4");
-  giscusHeading.textContent = "留言（GitHub 帳號）";
-  detailEl.appendChild(giscusHeading);
-
-  const comments = document.createElement("div");
-  comments.className = "ep-comments";
-  detailEl.appendChild(comments);
-  mountGiscus(comments, `${location.origin}${episodeShareUrl(ep)}`);
-
-  const siteCommentsHeading = document.createElement("h4");
-  siteCommentsHeading.textContent = "留言（訪客，免登入）";
-  detailEl.appendChild(siteCommentsHeading);
-
-  const siteComments = document.createElement("div");
-  siteComments.className = "ep-site-comments";
-  detailEl.appendChild(siteComments);
-  mountSiteComments(siteComments, ep.id);
 }
 
 function canonicalPathname() {
@@ -143,32 +134,6 @@ async function loadEpisodes() {
 
 if (document.getElementById("episode-list")) {
   loadEpisodes();
-}
-
-const GISCUS_CONFIG = {
-  repo: "subyub/subyubperweek",
-  repoId: "R_kgDOTW8X_A",
-  category: "Announcements",
-  categoryId: "DIC_kwDOTW8X_M4DBGC1",
-};
-
-function mountGiscus(container, shareUrl) {
-  container.innerHTML = "";
-  const script = document.createElement("script");
-  script.src = "https://giscus.app/client.js";
-  script.async = true;
-  script.crossOrigin = "anonymous";
-  script.setAttribute("data-repo", GISCUS_CONFIG.repo);
-  script.setAttribute("data-repo-id", GISCUS_CONFIG.repoId);
-  script.setAttribute("data-category", GISCUS_CONFIG.category);
-  script.setAttribute("data-category-id", GISCUS_CONFIG.categoryId);
-  script.setAttribute("data-mapping", "url");
-  script.setAttribute("data-strict", "0");
-  script.setAttribute("data-reactions-enabled", "1");
-  script.setAttribute("data-input-position", "bottom");
-  script.setAttribute("data-theme", "preferred_color_scheme");
-  script.setAttribute("data-lang", "zh-TW");
-  container.appendChild(script);
 }
 
 const TURNSTILE_SITE_KEY = "0x4AAAAAAD1yRjYHvUH53sdL";

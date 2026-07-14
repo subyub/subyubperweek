@@ -95,8 +95,6 @@ body {
   margin: 0 8px 8px 0;
 }
 
-.ep-comments { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
-
 .ep-detail h4 {
   font-size: 13px;
   font-weight: 600;
@@ -106,7 +104,7 @@ body {
   letter-spacing: 0.5px;
 }
 
-.ep-site-comments { margin-top: 8px; }
+.ep-site-comments { margin-top: 8px; margin-bottom: 20px; }
 
 .site-comment-list { margin-bottom: 16px; }
 
