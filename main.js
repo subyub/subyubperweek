@@ -248,10 +248,17 @@ function mountSiteComments(container, episodeId) {
   container.appendChild(form);
 
   let widgetId = null;
-  if (window.turnstile) {
-    widgetId = window.turnstile.render(turnstileEl, { sitekey: TURNSTILE_SITE_KEY });
+
+  function renderTurnstileWidget() {
+    if (!turnstileEl.isConnected) return;
+    if (window.turnstile) {
+      widgetId = window.turnstile.render(turnstileEl, { sitekey: TURNSTILE_SITE_KEY });
+      container.dataset.turnstileWidgetId = String(widgetId);
+    } else {
+      setTimeout(renderTurnstileWidget, 100);
+    }
   }
-  container.dataset.turnstileWidgetId = widgetId != null ? String(widgetId) : "";
+  renderTurnstileWidget();
 
   fetchSiteComments(episodeId)
     .then((comments) => {
