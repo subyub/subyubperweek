@@ -66,11 +66,16 @@ export async function onRequestGet(context) {
     return jsonResponse({ error: check.error }, 400);
   }
 
-  const { results } = await env.DB.prepare(
-    "SELECT id, episode_id, nickname, body, created_at FROM comments WHERE episode_id = ? ORDER BY created_at DESC"
-  )
-    .bind(check.episodeId)
-    .all();
+  let results;
+  try {
+    ({ results } = await env.DB.prepare(
+      "SELECT id, episode_id, nickname, body, created_at FROM comments WHERE episode_id = ? ORDER BY created_at DESC"
+    )
+      .bind(check.episodeId)
+      .all());
+  } catch (err) {
+    return jsonResponse({ error: "database error" }, 500);
+  }
 
   return jsonResponse(results, 200);
 }
@@ -97,11 +102,16 @@ export async function onRequestPost(context) {
   }
 
   const createdAt = new Date().toISOString();
-  const result = await env.DB.prepare(
-    "INSERT INTO comments (episode_id, nickname, body, created_at) VALUES (?, ?, ?, ?) RETURNING id, episode_id, nickname, body, created_at"
-  )
-    .bind(check.episodeId, check.nickname, check.body, createdAt)
-    .first();
+  let result;
+  try {
+    result = await env.DB.prepare(
+      "INSERT INTO comments (episode_id, nickname, body, created_at) VALUES (?, ?, ?, ?) RETURNING id, episode_id, nickname, body, created_at"
+    )
+      .bind(check.episodeId, check.nickname, check.body, createdAt)
+      .first();
+  } catch (err) {
+    return jsonResponse({ error: "database error" }, 500);
+  }
 
   return jsonResponse(result, 201);
 }
