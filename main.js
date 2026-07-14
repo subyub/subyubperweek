@@ -59,10 +59,23 @@ function renderEpisodeDetail(detailEl, ep) {
   ].join("");
   detailEl.appendChild(links);
 
+  const giscusHeading = document.createElement("h4");
+  giscusHeading.textContent = "留言（GitHub 帳號）";
+  detailEl.appendChild(giscusHeading);
+
   const comments = document.createElement("div");
   comments.className = "ep-comments";
   detailEl.appendChild(comments);
   mountGiscus(comments, `${location.origin}${episodeShareUrl(ep)}`);
+
+  const siteCommentsHeading = document.createElement("h4");
+  siteCommentsHeading.textContent = "留言（訪客，免登入）";
+  detailEl.appendChild(siteCommentsHeading);
+
+  const siteComments = document.createElement("div");
+  siteComments.className = "ep-site-comments";
+  detailEl.appendChild(siteComments);
+  mountSiteComments(siteComments, ep.id);
 }
 
 function canonicalPathname() {
@@ -74,6 +87,8 @@ function episodeShareUrl(ep) {
 }
 
 function resetEpisodeDetail(detailEl) {
+  const siteComments = detailEl.querySelector(".ep-site-comments");
+  if (siteComments) unmountSiteComments(siteComments);
   detailEl.innerHTML = "";
   detailEl.dataset.rendered = "false";
 }
@@ -154,4 +169,134 @@ function mountGiscus(container, shareUrl) {
   script.setAttribute("data-theme", "preferred_color_scheme");
   script.setAttribute("data-lang", "zh-TW");
   container.appendChild(script);
+}
+
+const TURNSTILE_SITE_KEY = "0x4AAAAAAD1yRjYHvUH53sdL";
+
+function renderCommentItem(comment) {
+  const item = document.createElement("div");
+  item.className = "site-comment-item";
+
+  const meta = document.createElement("p");
+  meta.className = "site-comment-meta";
+  meta.textContent = `${comment.nickname || "匿名"} · ${comment.created_at}`;
+
+  const body = document.createElement("p");
+  body.className = "site-comment-body";
+  body.textContent = comment.body;
+
+  item.appendChild(meta);
+  item.appendChild(body);
+  return item;
+}
+
+async function fetchSiteComments(episodeId) {
+  const res = await fetch(`/api/comments?episodeId=${encodeURIComponent(episodeId)}`);
+  if (!res.ok) throw new Error("留言載入失敗");
+  return res.json();
+}
+
+async function submitSiteComment(episodeId, nickname, body, turnstileToken) {
+  const res = await fetch("/api/comments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ episodeId, nickname, body, turnstileToken }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "留言送出失敗");
+  }
+  return res.json();
+}
+
+function mountSiteComments(container, episodeId) {
+  container.innerHTML = "";
+
+  const list = document.createElement("div");
+  list.className = "site-comment-list";
+  list.textContent = "載入中…";
+  container.appendChild(list);
+
+  const form = document.createElement("form");
+  form.className = "site-comment-form";
+
+  const nicknameInput = document.createElement("input");
+  nicknameInput.type = "text";
+  nicknameInput.placeholder = "暱稱（可留空）";
+  nicknameInput.maxLength = 50;
+
+  const bodyInput = document.createElement("textarea");
+  bodyInput.placeholder = "想講咩都得";
+  bodyInput.maxLength = 1000;
+  bodyInput.required = true;
+
+  const turnstileEl = document.createElement("div");
+
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "submit";
+  submitBtn.textContent = "送出";
+
+  const errorEl = document.createElement("p");
+  errorEl.className = "site-comment-error";
+  errorEl.hidden = true;
+
+  form.appendChild(nicknameInput);
+  form.appendChild(bodyInput);
+  form.appendChild(turnstileEl);
+  form.appendChild(submitBtn);
+  form.appendChild(errorEl);
+  container.appendChild(form);
+
+  let widgetId = null;
+  if (window.turnstile) {
+    widgetId = window.turnstile.render(turnstileEl, { sitekey: TURNSTILE_SITE_KEY });
+  }
+  container.dataset.turnstileWidgetId = widgetId != null ? String(widgetId) : "";
+
+  fetchSiteComments(episodeId)
+    .then((comments) => {
+      list.innerHTML = "";
+      if (comments.length === 0) {
+        list.textContent = "仲未有留言，做第一個留言嘅人啦。";
+        return;
+      }
+      comments.forEach((comment) => list.appendChild(renderCommentItem(comment)));
+    })
+    .catch(() => {
+      list.textContent = "留言載入失敗，請重新整理再試。";
+    });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorEl.hidden = true;
+
+    const token =
+      window.turnstile && widgetId != null ? window.turnstile.getResponse(widgetId) : "";
+
+    try {
+      const newComment = await submitSiteComment(
+        episodeId,
+        nicknameInput.value,
+        bodyInput.value,
+        token
+      );
+      if (list.querySelector(".site-comment-item") === null) {
+        list.innerHTML = "";
+      }
+      list.insertBefore(renderCommentItem(newComment), list.firstChild);
+      bodyInput.value = "";
+      nicknameInput.value = "";
+      if (window.turnstile && widgetId != null) window.turnstile.reset(widgetId);
+    } catch (err) {
+      errorEl.textContent = err.message;
+      errorEl.hidden = false;
+    }
+  });
+}
+
+function unmountSiteComments(container) {
+  const widgetId = container.dataset.turnstileWidgetId;
+  if (window.turnstile && widgetId) {
+    window.turnstile.remove(widgetId);
+  }
 }

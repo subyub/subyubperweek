@@ -96,3 +96,61 @@ body {
 }
 
 .ep-comments { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+.ep-detail h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 20px 0 8px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ep-site-comments { margin-top: 8px; }
+
+.site-comment-list { margin-bottom: 16px; }
+
+.site-comment-item {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+}
+
+.site-comment-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 0 4px;
+}
+
+.site-comment-body {
+  font-size: 14px;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.site-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.site-comment-form input,
+.site-comment-form textarea {
+  border: 1px solid var(--line);
+  padding: 8px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.site-comment-form textarea { min-height: 80px; resize: vertical; }
+
+.site-comment-form button {
+  align-self: flex-start;
+  border: 1px solid var(--text);
+  background: none;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.site-comment-error { color: var(--accent); font-size: 13px; margin: 0; }
