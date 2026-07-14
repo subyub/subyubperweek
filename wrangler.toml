@@ -1,0 +1,8 @@
+name = "subyubperweek"
+compatibility_date = "2026-07-14"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "subyubperweek-comments"
+database_id = "c5ec5843-a5a6-47f2-ad27-6d8ab9113baf"
