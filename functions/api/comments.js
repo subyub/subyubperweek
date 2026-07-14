@@ -1,4 +1,6 @@
 export const MAX_BODY_LENGTH = 1000;
+export const MAX_NICKNAME_LENGTH = 50;
+export const MAX_EPISODE_ID_LENGTH = 100;
 
 export function validateGetParams(searchParams) {
   const episodeId = searchParams.get("episodeId");
@@ -12,6 +14,9 @@ export function validatePostPayload(payload) {
   if (!payload || typeof payload.episodeId !== "string" || !payload.episodeId) {
     return { valid: false, error: "episodeId is required" };
   }
+  if (payload.episodeId.length > MAX_EPISODE_ID_LENGTH) {
+    return { valid: false, error: `episodeId exceeds ${MAX_EPISODE_ID_LENGTH} characters` };
+  }
 
   const trimmedBody = typeof payload.body === "string" ? payload.body.trim() : "";
   if (!trimmedBody) {
@@ -21,10 +26,11 @@ export function validatePostPayload(payload) {
     return { valid: false, error: `body exceeds ${MAX_BODY_LENGTH} characters` };
   }
 
-  const nickname =
-    typeof payload.nickname === "string" && payload.nickname.trim()
-      ? payload.nickname.trim()
-      : null;
+  const trimmedNickname = typeof payload.nickname === "string" ? payload.nickname.trim() : "";
+  if (trimmedNickname.length > MAX_NICKNAME_LENGTH) {
+    return { valid: false, error: `nickname exceeds ${MAX_NICKNAME_LENGTH} characters` };
+  }
+  const nickname = trimmedNickname || null;
 
   return {
     valid: true,

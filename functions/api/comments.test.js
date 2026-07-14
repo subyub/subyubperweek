@@ -5,6 +5,8 @@ import {
   validatePostPayload,
   verifyTurnstile,
   MAX_BODY_LENGTH,
+  MAX_NICKNAME_LENGTH,
+  MAX_EPISODE_ID_LENGTH,
 } from "./comments.js";
 
 test("validateGetParams rejects missing episodeId", () => {
@@ -59,6 +61,27 @@ test("validatePostPayload treats missing nickname as null", () => {
   const result = validatePostPayload({ episodeId: "abc", body: "hi" });
   assert.equal(result.valid, true);
   assert.equal(result.nickname, null);
+});
+
+test("validatePostPayload rejects nickname over max length", () => {
+  const longNickname = "x".repeat(MAX_NICKNAME_LENGTH + 1);
+  const result = validatePostPayload({ episodeId: "abc", body: "hi", nickname: longNickname });
+  assert.equal(result.valid, false);
+  assert.equal(result.error, `nickname exceeds ${MAX_NICKNAME_LENGTH} characters`);
+});
+
+test("validatePostPayload accepts nickname at exactly max length", () => {
+  const maxNickname = "x".repeat(MAX_NICKNAME_LENGTH);
+  const result = validatePostPayload({ episodeId: "abc", body: "hi", nickname: maxNickname });
+  assert.equal(result.valid, true);
+  assert.equal(result.nickname, maxNickname);
+});
+
+test("validatePostPayload rejects episodeId over max length", () => {
+  const longEpisodeId = "x".repeat(MAX_EPISODE_ID_LENGTH + 1);
+  const result = validatePostPayload({ episodeId: longEpisodeId, body: "hi" });
+  assert.equal(result.valid, false);
+  assert.equal(result.error, `episodeId exceeds ${MAX_EPISODE_ID_LENGTH} characters`);
 });
 
 test("verifyTurnstile returns false when token is missing", async () => {
