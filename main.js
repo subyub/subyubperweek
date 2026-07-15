@@ -18,7 +18,7 @@ function renderEpisodeList(episodes) {
     const node = template.content.cloneNode(true);
     node.querySelector(".ep-title").textContent = episodeLabel(ep);
     node.querySelector(".ep-meta").textContent = ep.pubDate;
-    node.querySelector(".ep-desc").textContent = episodeSummary(ep.description, 80);
+    node.querySelector(".ep-desc").textContent = episodeSummary(ep.summary || ep.description, 80);
 
     const card = node.querySelector(".episode-card");
     card.dataset.episodeId = ep.id;

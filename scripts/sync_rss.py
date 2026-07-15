@@ -23,6 +23,73 @@ def strip_html(text):
     return text.strip()
 
 
+LEAD_MARKERS = ("周邊商品", "formerchildclub", "全新 EP")
+FOOTER_MARKERS = ("patreon 支持我們", "收聽 每集會員限定內容", "本集內容：", "instagram:", "facebook:", "hosting provided by")
+
+
+SEPARATOR_CHARS = set("-_－―~～＿")
+
+
+def is_separator_line(line):
+    if not line:
+        return False
+    if len(set(line)) <= 2 and len(line) >= 5:
+        return True
+    return all(ch in SEPARATOR_CHARS for ch in line)
+
+
+FULLWIDTH_SEP_RE = re.compile(r"＿{5,}")
+
+
+def _clean_lines(text):
+    return [
+        line
+        for line in (l.strip() for l in text.split("\n"))
+        if line and not line.startswith("http") and not is_separator_line(line)
+    ]
+
+
+def _lines_via_marker_scan(text):
+    lines = [line.strip() for line in text.split("\n")]
+    content_lines = []
+    started = False
+    for line in lines:
+        if not line:
+            continue
+        lower = line.lower()
+        if any(marker in lower for marker in FOOTER_MARKERS):
+            break
+        if line.startswith("http"):
+            continue
+        if is_separator_line(line):
+            continue
+        if any(marker in line for marker in LEAD_MARKERS) or line.startswith("拾壹每週聽"):
+            if started:
+                break
+            continue
+        started = True
+        content_lines.append(line)
+    return content_lines
+
+
+def extract_summary(description, max_length=80):
+    text = description or ""
+
+    content_lines = []
+    parts = FULLWIDTH_SEP_RE.split(text)
+    if len(parts) >= 3:
+        content_lines = _clean_lines(parts[1])
+    if not content_lines:
+        content_lines = _lines_via_marker_scan(text)
+
+    summary = " ".join(content_lines).strip()
+    if not summary:
+        summary = next((line.strip() for line in text.split("\n") if line.strip()), "")
+    if len(summary) > max_length:
+        summary = summary[:max_length].rstrip() + "…"
+    return summary
+
+
 ITUNES_NS = {"itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd"}
 
 
@@ -46,6 +113,7 @@ def parse_feed(xml_text):
             season_el = item.find("itunes:season", ITUNES_NS)
             episode_el = item.find("itunes:episode", ITUNES_NS)
 
+            description = strip_html(desc_el.text if desc_el is not None else "")
             episodes.append(
                 {
                     "id": guid_el.text.strip() if guid_el is not None and guid_el.text else None,
@@ -53,7 +121,8 @@ def parse_feed(xml_text):
                     "episodeNumber": int(episode_el.text) if episode_el is not None and episode_el.text else None,
                     "title": clean_episode_title(title_el.text if title_el is not None else ""),
                     "pubDate": parse_pub_date(pub_date_el.text) if pub_date_el is not None and pub_date_el.text else None,
-                    "description": strip_html(desc_el.text if desc_el is not None else ""),
+                    "description": description,
+                    "summary": extract_summary(description),
                     "audioUrl": enclosure_el.get("url") if enclosure_el is not None else "",
                     "soundonUrl": link_el.text.strip() if link_el is not None and link_el.text else "",
                 }

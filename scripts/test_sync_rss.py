@@ -4,7 +4,15 @@ import json
 import tempfile
 from pathlib import Path
 
-from sync_rss import clean_episode_title, strip_html, parse_feed, parse_pub_date, merge_episodes, sync
+from sync_rss import (
+    clean_episode_title,
+    strip_html,
+    parse_feed,
+    parse_pub_date,
+    merge_episodes,
+    sync,
+    extract_summary,
+)
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "sample_feed.xml")
 
@@ -58,6 +66,87 @@ class TestParsePubDate(unittest.TestCase):
         self.assertEqual(parse_pub_date("Sat, 20 Jun 2026 13:29:28 +0000"), "2026-06-20")
 
 
+class TestExtractSummary(unittest.TestCase):
+    def test_strips_leading_merch_ad_and_trailing_patreon_footer(self):
+        description = (
+            "拾壹每週聽 可以聽的周邊商品： \n"
+            "李拾壹 全新 EP《男》 \n"
+            " https://formerchildclub.com/collections/x \n"
+            "＿＿＿＿＿＿＿＿＿＿＿＿ \n"
+            "\n"
+            "這次不到一個禮拜的時間 \n"
+            "找到福岡最強咖啡 \n"
+            "＿＿＿＿＿＿＿＿＿＿＿＿ \n"
+            "Patreon 支持我們 ! 成為乾爹 (媽) \n"
+            "收聽 每集會員限定內容 \n"
+        )
+        self.assertEqual(extract_summary(description), "這次不到一個禮拜的時間 找到福岡最強咖啡")
+
+    def test_handles_description_with_no_leading_ad(self):
+        description = (
+            "剛剛Facebook 推出了新的社交媒體平台 Threads \n"
+            "本來已經處於社交媒體恐懼的我們 \n"
+            "\n"
+            "Patreon 支持我們 /成為乾爹 / \n"
+            "收聽 每集會員限定內容 \n"
+        )
+        self.assertEqual(
+            extract_summary(description),
+            "剛剛Facebook 推出了新的社交媒體平台 Threads 本來已經處於社交媒體恐懼的我們",
+        )
+
+    def test_stops_at_trailing_merch_block_after_content_started(self):
+        description = (
+            "對很多人來說購物都是快樂的體驗 \n"
+            "但有些時候逼不得已要消費 \n"
+            "_______________________ \n"
+            "周邊商品： 賓周貓 Weekend Skater \n"
+        )
+        self.assertEqual(extract_summary(description), "對很多人來說購物都是快樂的體驗 但有些時候逼不得已要消費")
+
+    def test_truncates_long_summary_with_ellipsis(self):
+        description = "x" * 200
+        result = extract_summary(description, max_length=80)
+        self.assertEqual(len(result), 81)
+        self.assertTrue(result.endswith("…"))
+
+    def test_falls_back_to_first_line_when_everything_filtered_out(self):
+        description = "拾壹每週聽 周邊商品 - 滑板貓 Tee \n https://formerchildclub.com/x \n"
+        self.assertEqual(extract_summary(description), "拾壹每週聽 周邊商品 - 滑板貓 Tee")
+
+    def test_handles_empty_description(self):
+        self.assertEqual(extract_summary(""), "")
+        self.assertEqual(extract_summary(None), "")
+
+    def test_ignores_generic_hype_lead_line_before_merch_ad(self):
+        description = (
+            "拾壹每週聽 新！新！ 新！ \n"
+            "周邊商品 - 滑板貓Tote Bag \n"
+            " https://formerchildclub.com/x \n"
+            "＿＿＿＿＿＿＿＿＿＿＿＿ \n"
+            "\n"
+            "幾廿歲人仲有感情煩惱 \n"
+            "人人都唔同 \n"
+            "＿＿＿＿＿＿＿＿＿＿＿＿ \n"
+            "Patreon 支持我們 ! 成為乾爹 (媽) \n"
+        )
+        self.assertEqual(extract_summary(description), "幾廿歲人仲有感情煩惱 人人都唔同")
+
+    def test_prefers_separator_block_over_promo_announcement_before_it(self):
+        description = (
+            "拾壹每週聽 周邊商品 - 滑板貓 Tee \n"
+            "📢【演唱會門票已公開發售！】📢 \n"
+            "• 曼徹斯特站：2024年10月13日 \n"
+            "＿＿＿＿＿＿＿＿＿＿＿＿ \n"
+            "\n"
+            "本集節目繼續有嘉賓 \n"
+            "邀請到來自高雄的音樂人 \n"
+            "＿＿＿＿＿＿＿＿＿＿＿＿ \n"
+            "Patreon 支持我們 ! 成為乾爹 (媽) \n"
+        )
+        self.assertEqual(extract_summary(description), "本集節目繼續有嘉賓 邀請到來自高雄的音樂人")
+
+
 class TestParseFeed(unittest.TestCase):
     def setUp(self):
         with open(FIXTURE_PATH, encoding="utf-8") as f:
@@ -75,6 +164,7 @@ class TestParseFeed(unittest.TestCase):
         self.assertEqual(ep["title"], "福岡美食推介（公開版）")
         self.assertEqual(ep["pubDate"], "2026-06-20")
         self.assertIn("福岡最強咖啡", ep["description"])
+        self.assertEqual(ep["summary"], "這次不到一個禮拜的時間 找到福岡最強咖啡 & 出神入化的豆腐店 歡迎各位直接DM我們")
         self.assertTrue(ep["audioUrl"].startswith("https://rss.soundon.fm/"))
         self.assertTrue(ep["soundonUrl"].startswith("https://player.soundon.fm/"))
 
