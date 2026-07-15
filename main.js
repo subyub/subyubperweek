@@ -96,20 +96,50 @@ function collapseAllExcept(exceptCard) {
   });
 }
 
+function expandEpisode(card, ep, toggleBtn) {
+  const detail = card.querySelector(".ep-detail");
+  collapseAllExcept(card);
+  history.pushState(null, "", episodeShareUrl(ep));
+  renderEpisodeDetail(detail, ep);
+  detail.removeAttribute("hidden");
+  toggleBtn.textContent = "收合";
+}
+
 function toggleEpisodeDetail(card, ep, toggleBtn) {
   const detail = card.querySelector(".ep-detail");
   const isHidden = detail.hasAttribute("hidden");
   if (isHidden) {
-    collapseAllExcept(card);
-    history.pushState(null, "", episodeShareUrl(ep));
-    renderEpisodeDetail(detail, ep);
-    detail.removeAttribute("hidden");
-    toggleBtn.textContent = "收合";
+    expandEpisode(card, ep, toggleBtn);
   } else {
     detail.setAttribute("hidden", "");
     resetEpisodeDetail(detail);
     toggleBtn.textContent = "展開";
   }
+}
+
+function populateEpisodeJump(episodes) {
+  const select = document.getElementById("episode-jump");
+  if (!select) return;
+  episodes.forEach((ep) => {
+    const option = document.createElement("option");
+    option.value = ep.id;
+    option.textContent = episodeLabel(ep);
+    select.appendChild(option);
+  });
+}
+
+function jumpToEpisodeComments(episodeId, episodes) {
+  const card = document.querySelector(`.episode-card[data-episode-id="${episodeId}"]`);
+  const ep = episodes.find((e) => e.id === episodeId);
+  if (!card || !ep) return;
+
+  const detail = card.querySelector(".ep-detail");
+  if (detail.hasAttribute("hidden")) {
+    const toggleBtn = card.querySelector(".ep-toggle");
+    expandEpisode(card, ep, toggleBtn);
+  }
+
+  detail.querySelector(".ep-site-comments").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function applyDeepLinkFromUrl(episodes) {
@@ -128,12 +158,21 @@ async function loadEpisodes() {
   const res = await fetch("episodes.json");
   const data = await res.json();
   renderEpisodeList(data.episodes);
+  populateEpisodeJump(data.episodes);
   applyDeepLinkFromUrl(data.episodes);
   return data.episodes;
 }
 
 if (document.getElementById("episode-list")) {
-  loadEpisodes();
+  loadEpisodes().then((episodes) => {
+    const jumpSelect = document.getElementById("episode-jump");
+    jumpSelect.addEventListener("change", (event) => {
+      const episodeId = event.target.value;
+      jumpSelect.value = "";
+      if (!episodeId) return;
+      jumpToEpisodeComments(episodeId, episodes);
+    });
+  });
 }
 
 const TURNSTILE_SITE_KEY = "0x4AAAAAAD1yRjYHvUH53sdL";

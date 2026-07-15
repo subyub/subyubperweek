@@ -41,6 +41,18 @@ body {
 
 .site-header nav a:hover { color: var(--text); }
 
+.site-header nav select {
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--line);
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: inherit;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
 .episode-list {
   max-width: 720px;
   margin: 0 auto;
