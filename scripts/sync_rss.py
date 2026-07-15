@@ -90,6 +90,27 @@ def extract_summary(description, max_length=80):
     return summary
 
 
+CONTENT_LABEL_RE = re.compile(r"^本集內容[:：]\s*(.*)$")
+PATREON_POST_URL_RE = re.compile(r"https://www\.patreon\.com/(?:[\w-]+/)?posts/[\w-]+(?:\?\S*)?")
+
+
+def extract_patreon_post(description):
+    lines = (description or "").split("\n")
+    for i, line in enumerate(lines):
+        match = CONTENT_LABEL_RE.match(line.strip())
+        if not match:
+            continue
+        title = match.group(1).strip()
+        if not title:
+            return None
+        for later in lines[i + 1 : i + 7]:
+            url_match = PATREON_POST_URL_RE.search(later)
+            if url_match:
+                return {"title": title, "url": url_match.group(0).strip()}
+        return None
+    return None
+
+
 ITUNES_NS = {"itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd"}
 
 
@@ -123,6 +144,7 @@ def parse_feed(xml_text):
                     "pubDate": parse_pub_date(pub_date_el.text) if pub_date_el is not None and pub_date_el.text else None,
                     "description": description,
                     "summary": extract_summary(description),
+                    "patreonPost": extract_patreon_post(description),
                     "audioUrl": enclosure_el.get("url") if enclosure_el is not None else "",
                     "soundonUrl": link_el.text.strip() if link_el is not None and link_el.text else "",
                 }

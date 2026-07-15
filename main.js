@@ -44,6 +44,16 @@ function renderEpisodeDetail(detailEl, ep) {
   audio.src = ep.audioUrl;
   detailEl.appendChild(audio);
 
+  if (ep.patreonPost) {
+    const patreonLink = document.createElement("a");
+    patreonLink.className = "ep-patreon-post";
+    patreonLink.href = ep.patreonPost.url;
+    patreonLink.target = "_blank";
+    patreonLink.rel = "noopener";
+    patreonLink.textContent = `本集會員限定內容：《${ep.patreonPost.title}》 →`;
+    detailEl.appendChild(patreonLink);
+  }
+
   const siteCommentsHeading = document.createElement("h4");
   siteCommentsHeading.textContent = "留言";
   detailEl.appendChild(siteCommentsHeading);
@@ -163,7 +173,28 @@ async function loadEpisodes() {
   return data.episodes;
 }
 
+async function loadPatreonBanner() {
+  const banner = document.getElementById("patreon-banner");
+  if (!banner) return;
+
+  try {
+    const res = await fetch("patreon-latest.json");
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.title || !data.url) return;
+
+    const link = document.createElement("a");
+    link.href = data.url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.textContent = `🎧 本週 Patreon 會員內容：《${data.title}》 立即收聽 →`;
+    banner.appendChild(link);
+    banner.removeAttribute("hidden");
+  } catch (err) {}
+}
+
 if (document.getElementById("episode-list")) {
+  loadPatreonBanner();
   loadEpisodes().then((episodes) => {
     const jumpSelect = document.getElementById("episode-jump");
     jumpSelect.addEventListener("change", (event) => {

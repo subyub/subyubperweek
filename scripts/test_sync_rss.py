@@ -12,6 +12,7 @@ from sync_rss import (
     merge_episodes,
     sync,
     extract_summary,
+    extract_patreon_post,
 )
 
 FIXTURE_PATH = os.path.join(os.path.dirname(__file__), "fixtures", "sample_feed.xml")
@@ -145,6 +146,56 @@ class TestExtractSummary(unittest.TestCase):
             "Patreon 支持我們 ! 成為乾爹 (媽) \n"
         )
         self.assertEqual(extract_summary(description), "本集節目繼續有嘉賓 邀請到來自高雄的音樂人")
+
+
+class TestExtractPatreonPost(unittest.TestCase):
+    def test_extracts_title_and_specific_post_url(self):
+        description = (
+            "本集內容：會員通訊0620 - 福岡美食推介(隱藏版) \n"
+            "\n"
+            " https://www.patreon.com/subyub/posts/hui-yuan-tong-fu-161605158?utm_medium=x \n"
+            "\n"
+            " https://www.patreon.com/subyub \n"
+        )
+        self.assertEqual(
+            extract_patreon_post(description),
+            {
+                "title": "會員通訊0620 - 福岡美食推介(隱藏版)",
+                "url": "https://www.patreon.com/subyub/posts/hui-yuan-tong-fu-161605158?utm_medium=x",
+            },
+        )
+
+    def test_matches_post_url_without_creator_segment(self):
+        description = (
+            "本集內容：會員通訊0524 - 旅行中工作！ \n"
+            " https://www.patreon.com/posts/hui-yuan-tong-lu-159086662?utm_medium=x \n"
+        )
+        self.assertEqual(
+            extract_patreon_post(description)["url"],
+            "https://www.patreon.com/posts/hui-yuan-tong-lu-159086662?utm_medium=x",
+        )
+
+    def test_returns_none_when_title_present_but_no_specific_post_url(self):
+        description = (
+            "本集內容：會員通訊1129 － 到底要怎樣獎勵自己？ \n"
+            " https://www.patreon.com/subyub \n"
+            "\n"
+            " https://www.patreon.com/subyub \n"
+            " https://www.patreon.com/perchan \n"
+        )
+        self.assertIsNone(extract_patreon_post(description))
+
+    def test_returns_none_when_title_is_empty(self):
+        description = "本集內容： \n https://www.patreon.com/subyub \n"
+        self.assertIsNone(extract_patreon_post(description))
+
+    def test_returns_none_when_no_content_label_line(self):
+        description = "剛剛Facebook 推出了新的社交媒體平台 Threads \nPatreon 支持我們 /成為乾爹 / \n"
+        self.assertIsNone(extract_patreon_post(description))
+
+    def test_returns_none_for_empty_description(self):
+        self.assertIsNone(extract_patreon_post(""))
+        self.assertIsNone(extract_patreon_post(None))
 
 
 class TestParseFeed(unittest.TestCase):

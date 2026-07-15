@@ -53,6 +53,35 @@ body {
   cursor: pointer;
 }
 
+.patreon-banner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.patreon-banner a {
+  display: block;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-left: 3px solid var(--accent);
+  background: rgba(192, 57, 43, 0.06);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.patreon-banner a:hover { background: rgba(192, 57, 43, 0.12); }
+
+.ep-patreon-post {
+  display: block;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.ep-patreon-post:hover { text-decoration: underline; }
+
 .episode-list {
   max-width: 720px;
   margin: 0 auto;
